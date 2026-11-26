@@ -94,6 +94,29 @@ jobs:
           test "$(find dist/release -maxdepth 1 -name '*.zip' | wc -l)" -eq 12
           cat dist/release/*.sha256 > dist/release/SHA256SUMS.txt
           (cd dist/release && sha256sum --check SHA256SUMS.txt)
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          from urllib.parse import quote
+
+          repo = f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}"
+          tag = quote(os.environ['GITHUB_REF_NAME'], safe='')
+          downloads = f'{repo}/releases/download/{tag}/'
+          notes = Path('docs/RELEASE_NOTES.md').read_text(encoding='utf-8')
+          notes = notes.replace(
+              'https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/',
+              downloads,
+          ).replace(
+              'https://github.com/luck-gh/QRCodeTransceiver/blob/master/',
+              f'{repo}/blob/{tag}/',
+          )
+          links = re.findall(r'\[([^\[\]]+\.zip)\]\(' + re.escape(downloads) + r'\1\)', notes)
+          archives = sorted(archive.name for archive in Path('dist/release').glob('*.zip'))
+          if sorted(links) != archives:
+              raise SystemExit(f'Release links do not match ZIP files: links={sorted(links)}, files={archives}')
+          Path('dist/release-notes.md').write_text(notes, encoding='utf-8')
+          PY
           gh release create "$GITHUB_REF_NAME" --verify-tag \
             --title "$GITHUB_REF_NAME - Windows x64 / Linux x64" \
-            --notes-file docs/RELEASE_NOTES.md dist/release/*.zip
+            --notes-file dist/release-notes.md dist/release/*.zip

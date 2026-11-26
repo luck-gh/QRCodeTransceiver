@@ -1,13 +1,15 @@
 # Windows x64 / Linux x64 双端交付
 
-## 先下载哪个包
+## 下载便携版（解压即可用）
 
-| 电脑和用途 | 附件 | 窗口 / 命令行入口 |
+发送端用来选择文件并显示二维码，接收端用来解析视频或录屏。
+
+| 电脑和用途 | 点击下载 ZIP（链接文字就是文件名） | 解压后打开 |
 |---|---|---|
-| Windows x64 发送 | QRCodeSender-Windows-x64.zip | QRSend.exe / QRSendCLI.exe |
-| Windows x64 接收 | QRCodeReceiver-Windows-x64.zip | QRReceiver.exe / QRReceiveCLI.exe |
-| Linux x64 发送 | QRCodeSender-Linux-x64.zip | QRSend / QRSendCLI |
-| Linux x64 接收 | QRCodeReceiver-Linux-x64.zip | QRReceiver / QRReceiveCLI |
+| Windows x64 发送端 | [QRCodeSender-Windows-x64.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeSender-Windows-x64.zip) | `QRCodeSender/QRSend.exe` |
+| Linux x64 发送端 | [QRCodeSender-Linux-x64.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeSender-Linux-x64.zip) | `QRCodeSender/QRSend` |
+| Windows x64 接收端 | [QRCodeReceiver-Windows-x64.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeReceiver-Windows-x64.zip) | `QRCodeReceiver/QRReceiver.exe` |
+| Linux x64 接收端 | [QRCodeReceiver-Linux-x64.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeReceiver-Linux-x64.zip) | `QRCodeReceiver/QRReceiver` |
 
 完整解压, 保留 `_internal`. 便携包不要求目标机安装 Python.
 Linux 为 glibc >= 2.28 / x86_64 基线; 窗口仍需图形服务和可用字体, 中文需要系统中文字形.
@@ -37,9 +39,15 @@ Linux 为 glibc >= 2.28 / x86_64 基线; 窗口仍需图形服务和可用字体
 
 ## 脚本和离线包
 
-附四份 source.zip 及四份对应角色的 CPython 3.12 x64 离线依赖源码包:
-Windows 用 win_amd64-cp312-offline.zip, Linux 用 manylinux_2_28_x86_64-cp312-offline.zip.
-离线源码包仍需要匹配的系统 Python/Tk/venv; 无法安装这些条件时优先选便携包.
+已有 Python 环境、需要用脚本运行时，可以按系统和用途下载下表中的 ZIP。离线包附带 CPython 3.12 x64 依赖，仍需要系统已有 Python、Tk 和 venv。
+
+| 电脑与包类型 | 发送端 ZIP | 接收端 ZIP |
+|---|---|---|
+| Windows x64 源码 | [QRCodeSender-Windows-source.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeSender-Windows-source.zip) | [QRCodeReceiver-Windows-source.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeReceiver-Windows-source.zip) |
+| Windows x64 离线 | [QRCodeSender-win_amd64-cp312-offline.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeSender-win_amd64-cp312-offline.zip) | [QRCodeReceiver-win_amd64-cp312-offline.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeReceiver-win_amd64-cp312-offline.zip) |
+| Linux x64 源码 | [QRCodeSender-Linux-source.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeSender-Linux-source.zip) | [QRCodeReceiver-Linux-source.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeReceiver-Linux-source.zip) |
+| Linux x64 离线 | [QRCodeSender-manylinux_2_28_x86_64-cp312-offline.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeSender-manylinux_2_28_x86_64-cp312-offline.zip) | [QRCodeReceiver-manylinux_2_28_x86_64-cp312-offline.zip](https://github.com/luck-gh/QRCodeTransceiver/releases/latest/download/QRCodeReceiver-manylinux_2_28_x86_64-cp312-offline.zip) |
+
 Release 下载区只提供 ZIP. 构建过程中仍会校验完整性, 校验文件和清单不作为独立附件发布.
 
 ## 验证与限制
@@ -51,4 +59,4 @@ CI 仅在 Windows x64 和 Rocky Linux 8 x64 构建, 全部成功后才发布 Rel
 本版不包含改变参数的二次识别“打捞”或参考信号自动采样同步. 录制漏帧、严重模糊或欠秩时仍需追加接收/定向补传,
 不能保证任意视频一次恢复. 大型残余系统的消元仍有 CPU/内存成本, 本版没有超大文件性能保证.
 
-[新手使用说明](https://github.com/luck-gh/QRCodeTransceiver/blob/v0.1.0/docs/USER_GUIDE.md)
+[新手使用说明](https://github.com/luck-gh/QRCodeTransceiver/blob/master/docs/USER_GUIDE.md)
