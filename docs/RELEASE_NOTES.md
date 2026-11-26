@@ -40,7 +40,7 @@ Linux 为 glibc >= 2.28 / x86_64 基线; 窗口仍需图形服务和可用字体
 附四份 source.zip 及四份对应角色的 CPython 3.12 x64 离线依赖源码包:
 Windows 用 win_amd64-cp312-offline.zip, Linux 用 manylinux_2_28_x86_64-cp312-offline.zip.
 离线源码包仍需要匹配的系统 Python/Tk/venv; 无法安装这些条件时优先选便携包.
-`SHA256SUMS.txt` 包含全部 12 份 ZIP 的校验值.
+Release 下载区只提供 ZIP. 构建过程中仍会校验完整性, 校验文件和清单不作为独立附件发布.
 
 ## 验证与限制
 

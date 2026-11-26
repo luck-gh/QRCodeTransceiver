@@ -24,7 +24,8 @@ py -3.12 -m venv .venv-build
 构建 x86 时用 `py -3.12-32` 创建另一个环境, 并传 `--arch x86`.
 不能用 64 位 Python 仅修改输出文件名来生成 32 位程序.
 打包流程检查固定依赖版本, 不会偷偷自动安装或降级依赖.
-源码及依赖版本记录在 BUILD-INFO.json, 每个 ZIP 旁都有 SHA-256.
+源码及依赖版本记录在 BUILD-INFO.json. 本地构建与 Actions 内部保留每个 ZIP 的 SHA-256 用于验证;
+Release 下载区只发布 ZIP, 不额外上传校验文件或清单.
 
 ## 构建 Linux 便携包
 
