@@ -1,17 +1,26 @@
 # 新手使用说明
 
-## 选择程序
+## 第一步：按电脑系统下载
 
-发送电脑打开 `QRSend.exe` (Linux: `QRSend`), 接收电脑打开 `QRReceiver.exe` (Linux: `QRReceiver`).
-完整解压对应 ZIP, 不要单独复制一个可执行文件. 无法安装 Python 时优先选便携包.
-Linux x64 基线为 glibc >= 2.28, 需要相应动态加载器; GUI 还需图形服务、可用字体和字体配置, 中文显示需系统提供中文字形. 不适用 Alpine/musl、RHEL 7 或 32 位 Linux.
-不是所有 Linux 都能直接运行; [已验证目标](VALIDATION.md) 与仅提供构建工程的目标分开记录.
+进入 [GitHub Release](https://github.com/luck-gh/QRCodeTransceiver/releases)，按电脑系统选一个 ZIP。每个便携包都含发送端和接收端，可直接运行。
 
-如果使用源码, 电脑须已有匹配的 Python 3.10-3.12; GUI 还需 Tk, Linux 录屏还需可访问的 X11 桌面.
-源码包中先运行 `install.cmd` / `bash install.sh`; 离线包加 `--offline`, 不访问网络.
-wheels 不含系统 Python/Tk/venv. 这些也无法安装时使用便携包.
-安装后 Windows 用 `send.cmd` / `receive.cmd`, Linux 用 `bash send.sh` / `bash receive.sh`.
-命令行入口为相应的 `send_cli` / `receive_cli` 脚本. 仓库直接使用时按 requirements 安装后运行相应 `.py`.
+| 电脑系统 | 下载文件 |
+|---|---|
+| Windows x64 | `QRCodeTransceiver-Windows-x64.zip` |
+| Linux x64 | `QRCodeTransceiver-Linux-x64.zip` |
+
+## 第二步：解压并打开程序
+
+完整解压 ZIP，进入 `QRCodeTransceiver` 文件夹。保留发送端和接收端目录内各自的 `_internal`。
+
+| 用途 | Windows | Linux |
+|---|---|---|
+| 发送文件，显示二维码 | `QRCodeSender/QRSend.exe` | `QRCodeSender/QRSend` |
+| 接收文件，解析录屏或视频 | `QRCodeReceiver/QRReceiver.exe` | `QRCodeReceiver/QRReceiver` |
+
+Windows 双击对应的 exe。Linux 可在终端中从解压目录运行 `./QRCodeSender/QRSend` 或 `./QRCodeReceiver/QRReceiver`。请在 Linux 上用 `unzip` 或支持保留可执行权限的解压工具。
+Linux 便携版要求 x86_64、glibc 2.28 或更高版本。窗口需要图形服务和可用字体，录屏需要 X11。
+源码和 Python 离线安装见 [构建与部署说明](BUILDING.md)。
 
 ## 发送第一次完整任务
 
@@ -97,7 +106,8 @@ Base64 只用于可复制文本封装; 实际长度收益来自差分/区间/位
 
 ## 命令行示例
 
-源码用 `python qrcode_tx.py` / `python qrcode_rx.py`; 便携包替换为 `QRSendCLI.exe` / `QRReceiveCLI.exe` (Linux 无 exe 后缀).
+便携包的发送命令为 `QRCodeSender/QRSendCLI.exe`，接收命令为 `QRCodeReceiver/QRReceiveCLI.exe`。Linux 从解压目录运行对应的 `./QRCodeSender/QRSendCLI` 或 `./QRCodeReceiver/QRReceiveCLI`。
+以下示例使用源码命令，便携版可用对应的命令行程序替换。
 
 ```bash
 python qrcode_tx.py example.zip --task send.qrtx --size 600 -i 150

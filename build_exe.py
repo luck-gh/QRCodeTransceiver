@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""构建 Windows/Linux 发送端和接收端, 可选择便携成品或源码/离线包."""
+"""构建 Windows/Linux 便携成品、双端合包及源码/离线包."""
 
 import argparse
 import hashlib
@@ -28,9 +28,11 @@ ROLE_FILES = {
                  'packaging/rthook_receiver.py'),
 }
 ROLE_NAMES = {'sender': 'QRCodeSender', 'receiver': 'QRCodeReceiver'}
+ROLE_EXECUTABLES = {'sender': ('QRSend', 'QRSendCLI'), 'receiver': ('QRReceiver', 'QRReceiveCLI')}
+BUNDLE_NAME = 'QRCodeTransceiver'
 COMMON_FILES = ('build_exe.py', 'install_package.py', 'offline_wheels.py', 'requirements-build.txt',
                 'docs/USER_GUIDE.md', 'docs/BUILDING.md', 'docs/VALIDATION.md', 'docs/PROTOCOL_NOTES.md', 'docs/RELEASE_NOTES.md')
-EXECUTABLES = ('QRSend', 'QRSendCLI', 'QRReceiver', 'QRReceiveCLI')
+EXECUTABLES = {entry for entries in ROLE_EXECUTABLES.values() for entry in entries}
 
 
 def write_build_info(folder: Path, source_files, target: str, kind: str):
@@ -46,7 +48,7 @@ def write_build_info(folder: Path, source_files, target: str, kind: str):
 
 
 def archive_folder(folder: Path, archive: Path):
-    """完整目录压缩和摘要; Linux 三个入口均保留可执行位."""
+    """完整目录压缩和摘要, 为 Linux 启动入口保留可执行位."""
     with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as output:
         for path in sorted(folder.rglob('*')):
             if not path.is_file():
@@ -57,7 +59,9 @@ def archive_folder(folder: Path, archive: Path):
             info.external_attr = (0o100000 | mode) << 16
             output.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED)
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-    archive.with_suffix(archive.suffix + '.sha256').write_text(f'{digest}  {archive.name}\n', encoding='ascii')
+    archive.with_suffix(archive.suffix + '.sha256').write_text(
+        f'{digest}  {archive.name}\n', encoding='ascii', newline='\n',
+    )
     print(f'已生成: {archive}')
 
 
@@ -82,6 +86,29 @@ def write_launchers(folder: Path, target: str, manifest=None):
         for name, script in programs.items():
             text = header + f'exec "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/{script}" "$@"\n'
             (folder / (name + '.sh')).write_bytes(text.encode('utf-8'))
+
+
+def build_bundle(os_name: str, portable_dir: Path, output_dir: Path):
+    """合并同系统的两个 x64 成品, 每端使用自己的运行库目录."""
+    system = os_name.title()
+    suffix = '.exe' if os_name == 'windows' else ''
+    with tempfile.TemporaryDirectory(prefix='desktop-bundle-', dir=output_dir) as temporary:
+        folder = Path(temporary) / BUNDLE_NAME
+        folder.mkdir()
+        for role, name in ROLE_NAMES.items():
+            source = portable_dir / f'{name}-{system}-x64.zip'
+            with zipfile.ZipFile(source) as package:
+                files = package.namelist()
+                launchers = {f'{name}/{entry}{suffix}' for entry in ROLE_EXECUTABLES[role]}
+                if (not all(file.startswith(f'{name}/') for file in files)
+                        or not launchers.issubset(files)
+                        or not any(file.startswith(f'{name}/_internal/') and not file.endswith('/') for file in files)):
+                    raise ValueError(f'便携包缺少对应的启动入口或运行库: {source}')
+                package.extractall(folder)
+        shutil.copy2(ROOT / 'docs/USER_GUIDE.md', folder / '使用说明.txt')
+        archive = output_dir / f'{BUNDLE_NAME}-{system}-x64.zip'
+        archive_folder(folder, archive)
+    return archive
 
 
 def build_source(target: str, output_dir: Path, wheel_dir=None):
@@ -150,21 +177,33 @@ def build_native(target: str, output_dir: Path, arch=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--target', choices=TARGETS, default='windows-receiver')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--target', choices=TARGETS)
+    mode.add_argument('--bundle', choices=('windows', 'linux'), help='将同系统已构建的 x64 双端 ZIP 合为一包')
     parser.add_argument('--source', action='store_true', help='打源码包; 不指定时构建便携成品')
     parser.add_argument('--arch', choices=('x86', 'x64'), help='要求对应位数的构建 Python, 不进行交叉编译')
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'dist')
+    parser.add_argument('--portable-dir', type=Path, help='合包的输入目录, 默认与输出目录相同')
     parser.add_argument('--wheel-dir', type=Path, help='源码包附加的角色/平台匹配离线库目录')
     args = parser.parse_args()
+    if args.bundle and (args.source or args.arch or args.wheel_dir):
+        parser.error('--bundle 使用已有 x64 成品, 不接受 --source、--arch 或 --wheel-dir')
+    if args.portable_dir and not args.bundle:
+        parser.error('--portable-dir 用于 --bundle')
     if args.wheel_dir is not None and not args.source:
         parser.error('--wheel-dir 必须与 --source 一起使用')
     if args.arch is not None and args.source:
         parser.error('源码无机器码位数, --arch 仅用于便携成品; 离线目标由 wheelhouse 指定')
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = args.output_dir.resolve()
+    if args.bundle:
+        build_bundle(args.bundle, args.portable_dir or output_dir, output_dir)
+        return
+    target = args.target or 'windows-receiver'
     if args.source:
-        build_source(args.target, args.output_dir.resolve(), args.wheel_dir)
+        build_source(target, output_dir, args.wheel_dir)
     else:
-        build_native(args.target, args.output_dir.resolve(), args.arch)
+        build_native(target, output_dir, args.arch)
 
 
 if __name__ == '__main__':

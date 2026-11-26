@@ -6,18 +6,25 @@
 新传输协议 QT2 每包绑定具体任务、分块参数和校验. 每轮先覆盖全部源块, 再发新的 LT 喷泉修复包.
 漏包不导致后续编码包失效; 译码器先剥皮, 再用 GF(2) 高斯消元求解残余方程. 只有完整编码数据和最终文件 SHA-256 校验都通过才标记完成.
 
-## 新手入口
+## 第一步：按电脑系统下载
 
-完整流程见 [使用说明](docs/USER_GUIDE.md). 四种角色的安装、构建见 [构建说明](docs/BUILDING.md).
-[Release 下载](https://github.com/luck-gh/QRCodeTransceiver/releases) 提供正式附件, 本地构建在 `dist/current`, 实际验收范围见 [验证记录](docs/VALIDATION.md).
+在 [GitHub Release](https://github.com/luck-gh/QRCodeTransceiver/releases) 选择对应系统的便携包。每个包都包含发送端和接收端。
 
-| 角色 | Windows 便携入口 | Linux 便携入口 | Python 窗口 / 命令行 |
-|---|---|---|---|
-| 发送 | QRSend.exe / QRSendCLI.exe | QRSend / QRSendCLI | qrcode_tx_gui.py / qrcode_tx.py |
-| 接收 | QRReceiver.exe / QRReceiveCLI.exe | QRReceiver / QRReceiveCLI | qrcode_rx_gui.py / qrcode_rx.py |
+| 电脑系统 | 下载文件 |
+|---|---|
+| Windows x64 | `QRCodeTransceiver-Windows-x64.zip` |
+| Linux x64 | `QRCodeTransceiver-Linux-x64.zip` |
 
-两端都有小窗口; 便携包请完整解压, 保留 `_internal`. 源码包保留脚本方式, 离线源码包附带匹配的 Python wheels.
-Windows x64 和 Linux x64 成品的验证情况以验证记录为准. Windows x86 仅提供构建工程和离线库包; Linux x86 缺少当前固定依赖的预编译库, 暂无成品.
+## 第二步：解压并打开程序
+
+完整解压后进入 `QRCodeTransceiver` 文件夹，保留各端目录内的 `_internal`。
+
+| 用途 | Windows | Linux |
+|---|---|---|
+| 发送文件，显示二维码 | `QRCodeSender/QRSend.exe` | `QRCodeSender/QRSend` |
+| 接收文件，解析录屏或视频 | `QRCodeReceiver/QRReceiver.exe` | `QRCodeReceiver/QRReceiver` |
+
+操作详情见 [使用说明](docs/USER_GUIDE.md)。需要命令行、源码或 Python 离线安装时，参阅 [构建与部署说明](docs/BUILDING.md)。实际验收范围见 [验证记录](docs/VALIDATION.md)。
 
 ## 使用
 
@@ -43,4 +50,4 @@ python qrcode_rx.py --legacy --video old.mp4
 开发依赖: `python -m pip install -r requirements.txt`; 测试: `python -m unittest discover -s tests -v`.
 新发送端统一为单文件任务, 多文件先打成 ZIP; 删除旧的多文件交织/预生成循环契约. 用户要求的旧 MP4 一次性解析入口保留, 不合并新任务.
 [协议说明及后续节奏同步讨论](docs/PROTOCOL_NOTES.md) 区分已实现内容与研究方向.
-正式交付优先 Windows x64 / Linux x64. 推送 v* 标签后, CI 完成双端构建、验收和源码/离线包准备, 再发布 [GitHub Release](https://github.com/luck-gh/QRCodeTransceiver/releases).
+正式交付为 Windows x64 和 Linux x64 双端便携包。推送 v* 标签后，CI 构建并验收两个合包，随后发布到 GitHub Release。

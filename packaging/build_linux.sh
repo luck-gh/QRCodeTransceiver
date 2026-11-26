@@ -17,6 +17,13 @@ python3.12 -m unittest discover -s tests -v
 python3.12 tests/smoke_ui.py
 for role in "${roles[@]}"; do
     python3.12 build_exe.py --target "linux-$role" --arch x64 --output-dir dist/current
-    if [[ "$role" == sender ]]; then package=QRCodeSender; else package=QRCodeReceiver; fi
-    python3.12 tests/smoke_package.py "dist/current/$package-Linux-x64.zip" --role "$role"
 done
+if [[ $# -eq 0 ]]; then
+    python3.12 build_exe.py --bundle linux --output-dir dist/current
+    python3.12 tests/smoke_package.py dist/current/QRCodeTransceiver-Linux-x64.zip
+else
+    for role in "${roles[@]}"; do
+        if [[ "$role" == sender ]]; then package=QRCodeSender; else package=QRCodeReceiver; fi
+        python3.12 tests/smoke_package.py "dist/current/$package-Linux-x64.zip" --role "$role"
+    done
+fi

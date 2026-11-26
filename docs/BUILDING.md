@@ -1,4 +1,4 @@
-# 四种交付目标的构建
+# 构建与部署
 
 ## 目标和形式
 
@@ -7,9 +7,14 @@
 不加 `--source` 构建便携成品, 加 `--source` 生成源码包.
 源码包可附加 `--wheel-dir` 形成离线库包. 旧的仅 Linux 发送端安装/打包入口已删除.
 
-每种便携包包含窗口和命令行入口, 共用 `_internal` 运行库.
-Windows 用 exe, Linux 用对应本地可执行文件. 两种系统都保留 GUI 和 CLI Python 源码.
-输出统一使用 `--output-dir dist/current`; 不把上一轮 dist 根目录里的旧 ZIP 当作新交付.
+| 系统 | 便携合包 |
+|---|---|
+| Windows x64 | `QRCodeTransceiver-Windows-x64.zip` |
+| Linux x64 | `QRCodeTransceiver-Linux-x64.zip` |
+
+完整解压后进入 `QRCodeTransceiver`，发送时打开 `QRCodeSender/QRSend.exe`，接收时打开 `QRCodeReceiver/QRReceiver.exe`。Linux 使用相同路径中无 `.exe` 后缀的程序。
+每端的 GUI 和 CLI 共用该端自己的 `_internal`。合包保留两个运行库目录。
+示例输出使用 `--output-dir dist/current`。
 
 ## 本机构建 Windows 成品
 
@@ -19,6 +24,7 @@ py -3.12 -m venv .venv-build
 .\.venv-build\Scripts\python.exe -m pip install -r requirements.txt -r requirements-build.txt
 .\.venv-build\Scripts\python.exe build_exe.py --target windows-sender --arch x64 --output-dir dist/current
 .\.venv-build\Scripts\python.exe build_exe.py --target windows-receiver --arch x64 --output-dir dist/current
+.\.venv-build\Scripts\python.exe build_exe.py --bundle windows --output-dir dist/current
 ```
 
 构建 x86 时用 `py -3.12-32` 创建另一个环境, 并传 `--arch x86`.
@@ -39,6 +45,7 @@ python3.12 -m venv .venv-build
 .venv-build/bin/python -m pip install -r requirements.txt -r requirements-build.txt
 .venv-build/bin/python build_exe.py --target linux-sender --arch x64 --output-dir dist/current
 .venv-build/bin/python build_exe.py --target linux-receiver --arch x64 --output-dir dist/current
+.venv-build/bin/python build_exe.py --bundle linux --output-dir dist/current
 ```
 
 目标机解压便携包即可运行, 不需要安装 Python/Tk/pip, 不需要 sudo.
@@ -47,14 +54,24 @@ x86 32 位 Linux 当前的 Pillow/OpenCV/NumPy 固定版本缺少现成 wheels.
 构建器能检查 32 位宿主/输出标签, 但没有提供或验证 Linux x86 二进制.
 若必须支持这种旧环境, 需要额外的 32 位依赖源码编译、打包和目标机验证, 不能退回旧库冒充兼容.
 
+## 用已有成品合包
+
+在同一个目录放入对应系统的发送端和接收端 x64 ZIP。合包可以在 Windows 或 Linux 上执行。
+
+```bash
+python build_exe.py --bundle windows --portable-dir dist/release-v0.1.0 --output-dir dist/combined
+python build_exe.py --bundle linux --portable-dir dist/release-v0.1.0 --output-dir dist/combined
+```
+
+省略 `--portable-dir` 时，从输出目录读取两份单端 ZIP。
+
 ## 自动构建工程
 
 `.github/workflows/packages.yml` 配置 Windows x64 双角色和 Rocky Linux 8 x64 双角色.
 使用系统自带的 Python/Tk 在构建环境中打包, 并在 Xvfb/Windows 中运行 GUI 和文件内容验收.
-输出为 Actions Artifacts, 不自动创建 Releases 或部署.
-用户已批准验收后推送并发布. master 更新执行构建, v* 标签在四个目标全部构建/验收成功后,
-下载 Actions 附件并核对 12 个 ZIP 的 SHA-256, 然后发布 GitHub Release. Windows x86 暂不进入本轮矩阵.
-Release 说明取自 docs/RELEASE_NOTES.md. 不将未运行的目标标成已验证.
+每个系统构建两端，合包后验收 GUI、CLI 和数据收发。
+`master` 更新生成两个 Actions 构建附件。推送 `v*` 标签后，发布任务验证两个合包的 SHA-256，并用 `docs/RELEASE_NOTES.md` 中对应版本的下载说明发布两个 ZIP。
+源码和 Python 离线依赖包按下节命令单独生成。
 
 ## 四种源码和离线库包
 
@@ -77,13 +94,15 @@ Linux ARM 平台参数可用于下载可获得的 wheels, 但不能把 x64 本�
 下载器要求空目录, pip 失败不写成功清单. 新格式清单区分收发角色和系统, 不兼容旧的仅发送端清单.
 离线安装用 `install.cmd --offline` / `bash install.sh --offline`, 不联网, 不做管理员安装.
 wheels 不含系统 Python/Tk/venv; 这些也无法安装时, 应选便携成品.
+源码运行需要匹配的 Python 3.10-3.12，窗口需要 Tk，Linux 录屏需要 X11。
+安装后 Windows 用 `send.cmd` / `receive.cmd`，Linux 用 `bash send.sh` / `bash receive.sh`。
+命令行对应 `send_cli`、`receive_cli` 启动脚本。
 
 ## 验收
 
 ```bash
 python -m unittest discover -s tests -v
-python tests/smoke_package.py dist/current/QRCodeSender-Windows-x64.zip --role sender
-python tests/smoke_package.py dist/current/QRCodeReceiver-Windows-x64.zip --role receiver
+python tests/smoke_package.py dist/current/QRCodeTransceiver-Windows-x64.zip
 ```
 
 Linux 改成对应 ZIP, GUI 验收需要图形环境或 Xvfb.

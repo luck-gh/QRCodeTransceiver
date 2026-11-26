@@ -97,7 +97,9 @@ class PackageTests(unittest.TestCase):
                             entry = source.getinfo(top + 'install.sh')
                             self.assertTrue(entry.external_attr >> 16 & 0o111)
                             self.assertNotIn(b'\r\n', source.read(entry.filename))
-                    self.assertEqual(archive.with_suffix('.zip.sha256').read_text().split()[0], hashlib.sha256(archive.read_bytes()).hexdigest())
+                    checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
+                    self.assertEqual(archive.with_suffix('.zip.sha256').read_bytes(),
+                                     f'{checksum}  {archive.name}\n'.encode('ascii'))
 
     def test_offline_build_validates_before_creating_packages(self):
         with tempfile.TemporaryDirectory(dir=build_exe.ROOT, prefix='package-test-') as temp:
