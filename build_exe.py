@@ -20,9 +20,9 @@ from offline_wheels import ROLE_REQUIREMENTS, TARGETS, verify_wheelhouse
 
 ROOT = Path(__file__).resolve().parent
 ROLE_FILES = {
-    'sender': ('qrcode_tx.py', 'qrcode_tx_gui.py', 'qr_render.py', 'fountain.py',
+    'sender': ('qrcode_tx.py', 'qrcode_tx_gui.py', 'ui_theme.py', 'qr_render.py', 'fountain.py',
                'transfer_protocol.py', 'transfer_state.py', 'repair_request.py'),
-    'receiver': ('qrcode_rx.py', 'qrcode_rx_gui.py', 'qrcode_video.py', 'fountain.py',
+    'receiver': ('qrcode_rx.py', 'qrcode_rx_gui.py', 'ui_theme.py', 'block_map_view.py', 'qrcode_video.py', 'fountain.py',
                  'transfer_protocol.py', 'transfer_state.py', 'repair_request.py',
                  'qr_decode.py', 'legacy_receive.py', 'receive_pipeline.py', 'screen_record.py', 'block_map.py',
                  'packaging/rthook_receiver.py'),

@@ -22,6 +22,9 @@ class RoundResult:
     duplicate_video: bool = False
     cancelled: bool = False
     solving: dict = field(default_factory=dict)
+    total_frames: int = 0
+    matched: bool = False
+    error_stage: str = ''
 
     def text(self):
         if self.task is None:
@@ -48,10 +51,10 @@ class RoundResult:
 
 
 def process_video(path: Path, task, output_dir: Path, stop_event, state_path=None, overwrite=False, progress=None):
-    """不按视频速度等待; 每个有效包立即消元, 结束/取消/读取失败时保存已有进度."""
+    """逐帧消元并保存现场. progress 接收扫描帧数、总帧数和本轮已识别的任务."""
     result = RoundResult(task)
     before = task.done if task is not None else 0
-    fingerprint = None
+    stage = 'scan'
     try:
         fingerprint = file_digest(path)
         if task is not None and fingerprint in task.videos:
@@ -59,34 +62,45 @@ def process_video(path: Path, task, output_dir: Path, stop_event, state_path=Non
         else:
             last_update = 0.0
             with VideoScanner(path, decode_with_fallback, is_transfer_text) as scanner:
+                result.total_frames = scanner.total_frames
                 for texts in scanner:
                     if stop_event.is_set():
                         result.cancelled = True
                         break
                     result.frames = scanner.frame_index
+                    first_match = False
                     for text in texts:
-                        if task is None:
+                        if not result.matched:
                             try:
                                 packet = Packet.read(text)
                             except PacketError:
-                                continue
-                            task = ReceiveTask(packet.parameters)
-                            result.task = task
-                        task.feed(text)
-                    if progress is not None and time.monotonic() - last_update >= 0.1:
-                        progress(scanner.frame_index, scanner.total_frames, task)
-                        last_update = time.monotonic()
-                    if task is not None and task.glass.isDone():
-                        task.finish()
+                                pass
+                            else:
+                                if task is None:
+                                    task = ReceiveTask(packet.parameters)
+                                    result.task = task
+                                if packet.parameters == task.parameters:
+                                    result.matched = first_match = True
+                                    task.last_round_finished = False
+                        if task is not None:
+                            task.feed(text)
+                    now = time.monotonic()
+                    if progress is not None and (first_match or now - last_update >= 0.1):
+                        progress(result.frames, result.total_frames, task if result.matched else None)
+                        last_update = now
+                    if result.matched and task.glass.isDone():
                         break
-            if task is not None and not result.cancelled:
-                task.videos.add(fingerprint)
         if task is not None:
+            stage = 'verify'
             result.solving = task.finish()
             if task.verified:
+                stage = 'output'
                 task.write_output(output_dir, overwrite)
+            if result.matched and not result.cancelled:
+                task.videos.add(fingerprint)
     except (OSError, ValueError, cv2.error) as exc:
         result.error = str(exc)
+        result.error_stage = stage
     if task is not None:
         result.new_blocks = task.done - before
         task.log('视频解析结束', video=str(path), total=task.parameters.num_chunks, restored=task.done,
@@ -101,5 +115,6 @@ def process_video(path: Path, task, output_dir: Path, stop_event, state_path=Non
             result.state_saved = True
         except OSError as exc:
             task.log('现场保存失败', path=str(destination), error=str(exc))
+            result.error_stage = result.error_stage or 'state'
             result.error = (result.error + '; ' if result.error else '') + f'接收现场保存失败: {exc}'
     return result

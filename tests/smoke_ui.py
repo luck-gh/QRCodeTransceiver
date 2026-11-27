@@ -5,6 +5,7 @@ import threading
 import time
 import sys
 import tkinter as tk
+from tkinter import ttk
 from pathlib import Path
 from unittest.mock import patch
 
@@ -44,6 +45,14 @@ def main():
             app.export()
         assert request_file.read_text().strip() == code
         tx = SenderApp(sender_root, sender)
+        for name in ('dark', 'light'):
+            app.theme.set(name)
+            root.update_idletasks()
+            assert tx.theme.name == name
+            colors = app.theme.colors
+            assert app.map_view._canvas.cget('background') == colors['bg']
+            assert ttk.Style(root).lookup('TLabel', 'foreground') == colors['fg']
+            assert ttk.Style(root).lookup('Primary.TButton', 'foreground') == colors['accent_fg']
         tx.code.set(code)
         tx.apply_request()
         assert tuple(task.missing) == tx.requested

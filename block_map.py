@@ -1,4 +1,4 @@
-"""将真实源块连续分组为最多 100 格, 显示分组不改变传输粒度."""
+"""将真实源块连续分组为最多 1000 个显示单元, 保留真实块号."""
 
 from dataclasses import dataclass
 
@@ -15,7 +15,7 @@ class Cell:
 
 def cells(task):
     total = task.parameters.num_chunks
-    count = min(100, total)
+    count = min(1000, total)
     result = []
     for cell in range(count):
         start, end = cell * total // count, (cell + 1) * total // count

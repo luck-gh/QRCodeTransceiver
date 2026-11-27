@@ -37,21 +37,21 @@ def main(argv=None):
             task = SendTask.load(args.task)
         else:
             parser.error('请指定文件, 或用 --task 打开已有发送任务')
-        requested = None
+        feedback = None
         if args.repair:
             code = args.repair if args.repair.startswith('QRF1:') else Path(args.repair).read_text(encoding='utf-8')
             feedback = task.request(code)
             requested = feedback.requested
             print(f'补传 {len(requested)} 个源块, {len(requested) * task.parameters.chunk_size} 字节载荷, {feedback.description}')
         print(f"{task.manifest['filename']}: {task.parameters.num_chunks} 个源块. 冻结任务: {task.state_path}")
-        if requested == ():
+        if feedback is not None and not feedback.requested:
             print('请求没有待补传源块.')
             return 0
         if args.no_display:
             if args.output.exists() and any(args.output.iterdir()):
                 raise ValueError('二维码输出目录必须为空, 避免混入其他任务')
             args.output.mkdir(parents=True, exist_ok=True)
-            for packet, offset, total in task.rounds(requested, args.extra):
+            for packet, offset, total in task.rounds(feedback.requested if feedback is not None else None, args.extra):
                 build_qr(packet.text(), args.size, args.border, ERROR_CORRECTION_LEVELS[args.error_correction]).save(args.output / f'{offset:08d}.png')
                 if offset == total:
                     break
@@ -60,12 +60,13 @@ def main(argv=None):
             from qrcode_tx_gui import SenderApp
             root = tk.Tk()
             app = SenderApp(root, task)
-            app.requested = requested
-            app.interval.set(str(args.interval))
-            app.size.set(str(args.size))
-            app.extra = args.extra
-            app.border = args.border
-            app.correction = ERROR_CORRECTION_LEVELS[args.error_correction]
+            for name, value in (
+                ('interval', args.interval), ('size', args.size), ('extra', args.extra),
+                ('border', args.border), ('correction', args.error_correction),
+            ):
+                app.parameters[name].set(str(value))
+            if feedback is not None:
+                app.use_request(feedback)
             app.start()
             root.mainloop()
         return 0

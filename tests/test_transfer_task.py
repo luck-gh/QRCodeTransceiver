@@ -216,14 +216,27 @@ class TaskTests(unittest.TestCase):
         receiver.finish()
         self.assertEqual(receiver.write_output(self.root / 'empty-output').read_bytes(), b'')
 
-    def test_grouped_map_is_contiguous_at_most_100_and_distinguishes_conflicts(self):
-        task = ReceiveTask(Parameters.read('ab' * 32, 1, 251, 251))
+    def test_block_map_display_tier_boundaries(self):
+        for total in (1, 10, 11, 100, 101, 999, 1000, 1001, 12345):
+            with self.subTest(total=total):
+                task = ReceiveTask(Parameters.read('ab' * 32, 1, total, total))
+                states = cells(task)
+                self.assertEqual(len(states), min(total, 1000))
+                self.assertEqual((states[0].start, states[-1].end), (0, total))
+                for current, following in zip(states, states[1:]):
+                    self.assertLess(current.start, current.end)
+                    self.assertEqual(current.end, following.start)
+                self.assertTrue(all(cell.color == 'gray' for cell in states))
+
+    def test_grouped_map_distinguishes_partial_recovery_and_conflicts(self):
+        task = ReceiveTask(Parameters.read('ab' * 32, 1, 2001, 2001))
         task.feed(Packet(task.parameters, SOURCE, 0, 1, b'A').text())
         states = cells(task)
-        self.assertEqual(len(states), 100)
         self.assertEqual(states[0].color, 'yellow')
-        self.assertEqual([(a.end, b.start) for a, b in zip(states, states[1:])], [(a.end, a.end) for a in states[:-1]])
-        self.assertEqual((states[0].start, states[-1].end), (0, 251))
+        self.assertEqual((states[0].start, states[0].end), (0, 2))
+        self.assertEqual(states[0].missing, (1,))
+        feedback = task.feedback(scope=range(states[0].start, states[0].end))
+        self.assertEqual(feedback.requested, (1,))
         task.feed(Packet(task.parameters, SOURCE, 0, 2, b'B').text())
         self.assertEqual(cells(task)[0].color, 'red')
         self.assertIn('冲突', cells(task)[0].reason)
